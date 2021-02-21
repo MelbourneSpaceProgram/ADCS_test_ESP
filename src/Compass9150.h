@@ -40,9 +40,9 @@ public:
     uint8_t get_mag(int16_t* mx,int16_t* my,int16_t* mz);
 private:
     uint8_t state;
-    int16_t mx_offset;
-    int16_t my_offset;
-    int16_t mz_offset;
+    int16_t mx_offset=0;
+    int16_t my_offset=0;
+    int16_t mz_offset=0;
 
     const static uint8_t CAL_BIT = 0x01;
     const static uint8_t CAL_RUNNING_BIT = 0x02;

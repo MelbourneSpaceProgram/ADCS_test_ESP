@@ -36,8 +36,13 @@ THE SOFTWARE.
 // I2Cdev and MPU9150 must be installed as libraries, or else the .cpp/.h files
 // for both classes must be in the include path of your project
 #include "I2Cdev.h"
+#include "MPU9150.h"
 #include "Compass9150.h"
-#include "helper_3dmath.h"
+// #include "helper_3dmath.h"
+#include "Torquer.h"
+
+
+#include "BluetoothSerial.h"
 
 // class default I2C address is 0x68
 // specific I2C addresses may be passed as a parameter here
@@ -45,8 +50,49 @@ THE SOFTWARE.
 // AD0 high = 0x69
 Compass9150 imu;
 
+BluetoothSerial ESP_BT; // 
+
+Torquer x_rod(27, 26, 25, 0);
+Torquer y_rod(35, 33, 32, 1);
+
+// #define ESP_BT Serial
+
+#define BUFFER_LEN 10
+
 #define LED_PIN 2
 bool blinkState = false;
+
+int16_t mx_avg, my_avg, mz_avg;
+int16_t mx[BUFFER_LEN];
+int16_t my[BUFFER_LEN];
+int16_t mz[BUFFER_LEN];
+uint16_t idx = 0;
+
+// Shift left function for array
+void shiftRight(int16_t (&array)[BUFFER_LEN]) {
+    for(int i=BUFFER_LEN-1; i>0; i--){
+        array[i] = array[i-1];
+    }
+}
+
+/* Calculates a weighted average of B
+*/
+float averageB(int16_t (&array)[BUFFER_LEN], float lambda){
+    float sum = 0;
+    // float norm = 0;
+    for(int i=0; i<BUFFER_LEN; i++){
+        sum += exp(-i*lambda)*array[i];
+        // norm += exp(-i*lambda);
+    }
+    float output = sum * (1-exp(-lambda))/(1-exp(-lambda*BUFFER_LEN));
+    return output;
+}
+
+unsigned long old_t;
+
+float old_mx=0;
+float old_my=0;
+float old_mz=0;
 
 void setup() {
     // join I2C bus (I2Cdev library doesn't do this automatically)
@@ -55,64 +101,93 @@ void setup() {
     // initialize serial communication
     // (38400 chosen because it works as well at 8MHz as it does at 16MHz, but
     // it's really up to you depending on your project)
-    Serial.begin(115200);
+    ESP_BT.begin("ESP32"); //Name of your Bluetooth Signal
+    // Serial.begin(115200);
 
     // initialize device
-    Serial.println("Initializing I2C devices...");
+    ESP_BT.println("Initializing I2C devices...");
     imu.initialize();
 
     // verify connection
-    Serial.println("Testing device connections...");
-    Serial.println(imu.testConnection() ? "MPU9150 connection successful" : "MPU9150 connection failed");
+    ESP_BT.println("Testing device connections...");
+    ESP_BT.println(imu.testConnection() ? "MPU9150 connection successful" : "MPU9150 connection failed");
 
-    Serial.println("Calibrating magnetometer...");
-    imu.calibrate();
-    Serial.println( (imu.isCalibrated()) ? "Success" : "Failure");
+    // Constant offsets are not relevant for dB/dt
+    //
+    // Serial.println("Calibrating magnetometer...");
+    // imu.calibrate();
+    // Serial.println( (imu.isCalibrated()) ? "Success" : "Failure");
 
     // configure Arduino LED pin for output
     pinMode(LED_PIN, OUTPUT);
 
+    for (int i = BUFFER_LEN-1; i >=0; i--){
+        imu.getMag(mx+i, my+i, mz+i);
+        delay(100);
+    }
+
+    x_rod.init();
+    y_rod.init();
+
+    x_rod.set_max_power(128);
+    y_rod.set_max_power(128);
     
+
+    old_t = micros();
 }
 
-#define BUFFER_LEN 32
-
-int16_t mx_avg, my_avg, mz_avg;
-int16_t mx[BUFFER_LEN];
-int16_t my[BUFFER_LEN];
-int16_t mz[BUFFER_LEN];
-uint16_t idx = 0;
+float decay = 0.5;
 
 void loop() {
     // read raw accel/gyro/mag measurements from device
-    uint8_t retval = imu.getMag(mx+idx, my+idx, mz+idx);
+    shiftRight(mx);
+    shiftRight(my);
 
-    // mx_avg = 0;
-    // for (int i=0; i<BUFFER_LEN; i++){
-    //     mx_avg += mx[i];
-    //     my_avg += my[i];
-    //     mz_avg += mz[i];
+    unsigned long t = micros();
+    uint8_t status = imu.getMag(mx, my, mz);
+    float avg_mx = averageB(mx, decay);
+    float avg_my = averageB(my, decay);
+    float avg_mz = averageB(mz, decay);
+
+    float dmx_dt = (avg_mx - old_mx) / (t - old_t);
+    float dmy_dt = (avg_my - old_my) / (t - old_t);
+    
+    // if (ESP_BT.available() > 0){
+    //     decay = ESP_BT.parseFloat();
+    //     ESP_BT.print("Set decay constant to ");
+    //     ESP_BT.println(decay);
     // }
+    // one = 0.3 microTesla
 
-    Serial.print(mx[idx]); Serial.print("\t");
-    Serial.print(my[idx]); Serial.print("\t");
-    Serial.print(mz[idx]); Serial.print("\t");
-    Serial.println(retval);
+    float biggest = max(dmx_dt, dmy_dt);
+    dmx_dt /= biggest;
+    dmy_dt /= biggest;
 
-    // const float N = 256;
-    // float mag = mx*mx/N + my*my/N + mz*mz/N;
 
-    // Serial.print(mag); Serial.print("\t");
-    // for (int i=0; i<mag; i++)
-    //     Serial.print("*");
-    // Serial.print("\n");
+    x_rod.actuate(-dmx_dt);
+    y_rod.actuate(-dmy_dt);
+
+
+    ESP_BT.print(avg_mx); ESP_BT.print("\t");
+    ESP_BT.print(avg_my); ESP_BT.print("\t");
+    ESP_BT.print(avg_mz); ESP_BT.print("\t");
+
+    ESP_BT.print(mx[0]); ESP_BT.print("\t");
+    ESP_BT.print(my[0]); ESP_BT.print("\t");
+    ESP_BT.print(mz[0]); ESP_BT.print("\t");
+    ESP_BT.println(status);
 
     // blink LED to indicate activity
     blinkState = !blinkState;
     digitalWrite(LED_PIN, blinkState);
-    delay(100);
+    delay(50);
 
     if (++idx == BUFFER_LEN){
         idx = 0;
     }
+
+    old_mx = avg_mx;
+    old_my = avg_my;
+    old_mz = avg_mz;
+    old_t = t;
 }

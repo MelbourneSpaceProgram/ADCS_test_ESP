@@ -32,9 +32,9 @@ void Compass9150::calibrate(){
     }
 
     if (mx_max - mx_min > min_delta && my_max - my_min > min_delta && mz_max - mz_min > min_delta) {
-        mx_offset = (mx_max - mx_min) /2;
-        my_offset = (my_max - my_min) /2;
-        mz_offset = (mz_max - mz_min) /2;
+        mx_offset = (mx_max + mx_min) /2;
+        my_offset = (my_max + my_min) /2;
+        mz_offset = (mz_max + mz_min) /2;
         state |= CAL_BIT;
     }
 
