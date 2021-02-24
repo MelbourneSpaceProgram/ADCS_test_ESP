@@ -151,12 +151,13 @@ void loop() {
 
     float dmx_dt = (avg_mx - old_mx) / (t - old_t);
     float dmy_dt = (avg_my - old_my) / (t - old_t);
+    float dmz_dt = (avg_mz - old_mz) / (t - old_t);
     
-    // if (ESP_BT.available() > 0){
-    //     decay = ESP_BT.parseFloat();
-    //     ESP_BT.print("Set decay constant to ");
-    //     ESP_BT.println(decay);
-    // }
+    if (ESP_BT.available() > 0){
+        decay = ESP_BT.parseFloat();
+        ESP_BT.print("Set decay constant to ");
+        ESP_BT.println(decay);
+    }
     // one = 0.3 microTesla
 
     float biggest = max(dmx_dt, dmy_dt);

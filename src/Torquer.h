@@ -32,6 +32,7 @@ public:
             digitalWrite(fwd, HIGH);
             digitalWrite(bwd, LOW);
         }
+        
         if (mu < 0) {
             digitalWrite(fwd, LOW);
             digitalWrite(bwd, HIGH);
