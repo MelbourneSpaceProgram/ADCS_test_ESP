@@ -1,0 +1,16 @@
+{
+	"folders": [
+		{
+			"path": "../ESP-Wifi"
+		},
+		{
+			"name": "ESP with MCU9150 test",
+			"path": "."
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"functional": "cpp"
+		}
+	}
+}
