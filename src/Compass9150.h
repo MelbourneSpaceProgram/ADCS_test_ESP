@@ -1,4 +1,4 @@
-#include <MPU9150.h>
+#include "MPU9150_fixed.h"
 
 // Maximum and minimum field readings
 #define AK8975_H_OL_POS 4095
