@@ -98,8 +98,6 @@ void setup() {
     Wire.begin();
 
     // initialize serial communication
-    // (38400 chosen because it works as well at 8MHz as it does at 16MHz, but
-    // it's really up to you depending on your project)
     ESP_BT.begin("ESP32"); //Name of your Bluetooth Signal
     // Serial.begin(115200);
 
@@ -117,7 +115,7 @@ void setup() {
     // imu.calibrate();
     // Serial.println( (imu.isCalibrated()) ? "Success" : "Failure");
 
-    // configure Arduino LED pin for output
+    // configure LED pin for output
     pinMode(LED_PIN, OUTPUT);
 
     for (int i = BUFFER_LEN-1; i >=0; i--){
@@ -125,9 +123,14 @@ void setup() {
         delay(100);
     }
 
+
+		// Call torquer initialisation routines (these set up the pins and
+		// configure PWM channels)
     x_rod.init();
     y_rod.init();
 
+		// Sets maximum allowable PWM duty cycle
+		// TODO: Reconfigure this to be a percentage
     x_rod.set_max_power(128);
     y_rod.set_max_power(128);
     
@@ -159,7 +162,9 @@ void loop() {
     }
     // one = 0.3 microTesla
 
-    float biggest = max(dmx_dt, dmy_dt);
+
+		// Rescale the control signals so that the larger one is always plus/minus one
+    float biggest = max(abs(dmx_dt), abs(dmy_dt));
     dmx_dt /= biggest;
     dmy_dt /= biggest;
 
