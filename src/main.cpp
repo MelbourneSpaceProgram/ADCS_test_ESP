@@ -36,62 +36,28 @@ THE SOFTWARE.
 // I2Cdev and MPU9150 must be installed as libraries, or else the .cpp/.h files
 // for both classes must be in the include path of your project
 #include "I2Cdev.h"
-#include "Compass9150.h"
+#include "BdotController.h"
 // #include "helper_3dmath.h"
 #include "Torquer.h"
 
 
 #include "BluetoothSerial.h"
 
-// class default I2C address is 0x68
-// specific I2C addresses may be passed as a parameter here
-// AD0 low = 0x68 (default for InvenSense evaluation board)
-// AD0 high = 0x69
-Compass9150 imu;
 
 BluetoothSerial ESP_BT; // 
 
 Torquer x_rod(27, 26, 25, 0);
 Torquer y_rod(35, 33, 32, 1);
 
-// #define ESP_BT Serial
+BDotController ctrl;
+
+
 
 #define BUFFER_LEN 10
 
 #define LED_PIN 2
 bool blinkState = false;
 
-int16_t mx_avg, my_avg, mz_avg;
-int16_t mx[BUFFER_LEN];
-int16_t my[BUFFER_LEN];
-int16_t mz[BUFFER_LEN];
-uint16_t idx = 0;
-
-// Shift left function for array
-void shiftRight(int16_t (&array)[BUFFER_LEN]) {
-    for(int i=BUFFER_LEN-1; i>0; i--){
-        array[i] = array[i-1];
-    }
-}
-
-/* Calculates a weighted average of B
-*/
-float averageB(int16_t (&array)[BUFFER_LEN], float lambda){
-    float sum = 0;
-    // float norm = 0;
-    for(int i=0; i<BUFFER_LEN; i++){
-        sum += exp(-i*lambda)*array[i];
-        // norm += exp(-i*lambda);
-    }
-    float output = sum * (1-exp(-lambda))/(1-exp(-lambda*BUFFER_LEN));
-    return output;
-}
-
-unsigned long old_t;
-
-float old_mx=0;
-float old_my=0;
-float old_mz=0;
 
 void setup() {
     // join I2C bus (I2Cdev library doesn't do this automatically)
@@ -100,29 +66,18 @@ void setup() {
     // initialize serial communication
     ESP_BT.begin("ESP32"); //Name of your Bluetooth Signal
     // Serial.begin(115200);
-
-    // initialize device
-    ESP_BT.println("Initializing I2C devices...");
-    imu.initialize();
-
-    // verify connection
-    ESP_BT.println("Testing device connections...");
-    ESP_BT.println(imu.testConnection() ? "MPU9150 connection successful" : "MPU9150 connection failed");
-
+    
     // Constant offsets are not relevant for dB/dt
     //
     // Serial.println("Calibrating magnetometer...");
     // imu.calibrate();
     // Serial.println( (imu.isCalibrated()) ? "Success" : "Failure");
+    // initialize the controller
+    ctrl.init();
+
 
     // configure LED pin for output
     pinMode(LED_PIN, OUTPUT);
-
-    for (int i = BUFFER_LEN-1; i >=0; i--){
-        imu.getMag(mx+i, my+i, mz+i);
-        delay(100);
-    }
-
 
 		// Call torquer initialisation routines (these set up the pins and
 		// configure PWM channels)
@@ -138,27 +93,27 @@ void setup() {
     old_t = micros();
 }
 
-float decay = 0.5;
+// Parametrises numerical low pass filter
+// Dimensionless - this only depends on the nth data point in history
+float lambda = 0.5;
 
 void loop() {
-    // read raw accel/gyro/mag measurements from device
-    shiftRight(mx);
-    shiftRight(my);
-
     unsigned long t = micros();
+    // read raw accel/gyro/mag measurements from device
     uint8_t status = imu.getMag(mx, my, mz);
-    float avg_mx = averageB(mx, decay);
-    float avg_my = averageB(my, decay);
-    float avg_mz = averageB(mz, decay);
+    // compute some averages
+    float avg_mx = averageB(mx);
+    float avg_my = averageB(my);
+    float avg_mz = averageB(mz);
 
     float dmx_dt = (avg_mx - old_mx) / (t - old_t);
     float dmy_dt = (avg_my - old_my) / (t - old_t);
     float dmz_dt = (avg_mz - old_mz) / (t - old_t);
     
     if (ESP_BT.available() > 0){
-        decay = ESP_BT.parseFloat();
+        lambda = ESP_BT.parseFloat();
         ESP_BT.print("Set decay constant to ");
-        ESP_BT.println(decay);
+        ESP_BT.println(lambda);
     }
     // one = 0.3 microTesla
 
@@ -177,9 +132,9 @@ void loop() {
     ESP_BT.print(avg_my); ESP_BT.print("\t");
     ESP_BT.print(avg_mz); ESP_BT.print("\t");
 
-    ESP_BT.print(mx[0]); ESP_BT.print("\t");
-    ESP_BT.print(my[0]); ESP_BT.print("\t");
-    ESP_BT.print(mz[0]); ESP_BT.print("\t");
+    ESP_BT.print(dmx_dt); ESP_BT.print("\t");
+    ESP_BT.print(dmy_dt); ESP_BT.print("\t");
+    ESP_BT.print(dmz_dt); ESP_BT.print("\t");
     ESP_BT.println(status);
 
     // blink LED to indicate activity

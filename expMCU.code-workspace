@@ -4,7 +4,10 @@
 			"path": "../ESP-Wifi"
 		},
 		{
-			"name": "ESP with MCU9150 test",
+			"name": "BDot Control",
+			"path": "../BDot Control"
+		},
+		{
 			"path": "."
 		}
 	],
