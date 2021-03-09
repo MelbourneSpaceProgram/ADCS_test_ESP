@@ -7,25 +7,36 @@ struct Vector3 {
         this->x += v2.x;
         this->y += v2.y;
         this->z += v2.z;
+        return *this;
     }
 
     Vector3& operator-=(const Vector3<T>& v2){
         this->x -= v2.x;
         this->y -= v2.y;
         this->z -= v2.z;
+        return *this;
     }
 
     Vector3& operator*=(const Vector3<T>& v2){
         this->x *= v2.x;
         this->y *= v2.y;
         this->z *= v2.z;
+        return *this;
     }
 
-    Vector3& operator*=(const T& a){
+
+    // scalar multiplication
+    Vector3& operator*=(T a){
         this->x *= a;
         this->y *= a;
         this->z *= a;
         return *this;
+    }
+
+    Vector3& operator=(T value){
+        this->x = value;
+        this->y = value;
+        this->z = value;
     }
 };
 
