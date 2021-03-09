@@ -84,6 +84,7 @@ float averageB(int16_t (&array)[BUFFER_LEN], float lambda){
         // norm += exp(-i*lambda);
     }
     float output = sum * (1-exp(-lambda))/(1-exp(-lambda*BUFFER_LEN));
+    // float output = sum / norm;
     return output;
 }
 
@@ -131,8 +132,8 @@ void setup() {
 
 		// Sets maximum allowable PWM duty cycle
 		// TODO: Reconfigure this to be a percentage
-    x_rod.set_max_power(128);
-    y_rod.set_max_power(128);
+    x_rod.set_power(128);
+    y_rod.set_power_max(128);
     
 
     old_t = micros();
@@ -165,8 +166,11 @@ void loop() {
 
 		// Rescale the control signals so that the larger one is always plus/minus one
     float biggest = max(abs(dmx_dt), abs(dmy_dt));
-    dmx_dt /= biggest;
-    dmy_dt /= biggest;
+    if (biggest > 0){
+      dmx_dt /= biggest;
+      dmy_dt /= biggest;
+    }
+    
 
 
     x_rod.actuate(-dmx_dt);

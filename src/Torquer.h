@@ -38,12 +38,16 @@ public:
             digitalWrite(bwd, HIGH);
         }
 
-        uint8_t sig = mu*max_power;
+        uint8_t sig = abs(mu)*max_power;
         ledcWrite(pwm_channel, sig);
     }
 
-    void set_max_power(uint16_t pow){
-        max_power = pow;
+    void set_power_maximum(float x){
+        max_power = x*max_allowed_power;
+    }
+
+    void set_deadzone(float x){
+        deadzone_cutoff = x;
     }
 
 private:
@@ -52,6 +56,7 @@ private:
     float deadzone_cutoff = 0.005; // 0.5% power
 
     uint8_t resolution = 8; // bits
+    const uint16_t max_allowed_power = 255;
     uint16_t max_power = 255;
     uint16_t freq = 5000; // Hz
 
