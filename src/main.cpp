@@ -132,8 +132,8 @@ void setup() {
 
 		// Sets maximum allowable PWM duty cycle
 		// TODO: Reconfigure this to be a percentage
-    x_rod.set_power(128);
-    y_rod.set_power_max(128);
+    x_rod.set_power_maximum(128);
+    y_rod.set_power_maximum(128);
     
 
     old_t = micros();
