@@ -38,6 +38,18 @@ struct Vector3 {
         this->y = value;
         this->z = value;
     }
+
+    static Vector3 ones(T f){
+        Vector3 v;
+        v = value;
+        return v;
+    }
+
+    static const Vector3 ones(const T f){
+        Vector3 v;
+        v = value;
+        return v;
+    }
 };
 
 template<typename T>

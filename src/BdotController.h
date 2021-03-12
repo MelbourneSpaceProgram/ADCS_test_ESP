@@ -30,23 +30,27 @@ public:
         return imu.testConnection();
     }
     void calc_average(vector3_f& B){
-        vector3_f norm;
+        float norm;
         vector3_f tmp;
         norm = 0.0f;
         B = 0.0f;
         int64_t curr_time = t_history[hist_idx];
         float dt;
         float weight;
-        for (uint8_t i=0; i<BUFFER_LEN; i++){
+        vTaskEnterCritical(&my_mutex);
+        for (uint8_t n=0; n<BUFFER_LEN; n++){
             tmp = history[(hist_idx-n) % BUFFER_LEN];
             dt = t_history[(hist_idx-n) % BUFFER_LEN] - curr_time; // should be negative or zero
             weight = exp(dt/tau);
             tmp *= weight;
-            norm += weight;
             B += tmp;
+
+            norm += weight;
         }
-        B *= 1.0f/weight; // normalise
+        vTaskExitCritical(&my_mutex);
+        B *= 1.0f/norm; // normalise
     }
+
 
 private:
     static Ticker pollCaller;

@@ -90,7 +90,6 @@ void setup() {
     y_rod.set_max_power(128);
     
 
-    old_t = micros();
 }
 
 // Parametrises numerical low pass filter
