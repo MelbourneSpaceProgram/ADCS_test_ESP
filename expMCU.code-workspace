@@ -1,9 +1,6 @@
 {
 	"folders": [
 		{
-			"path": "../ESP-Wifi"
-		},
-		{
 			"name": "ESP with MCU9150 test",
 			"path": "."
 		}

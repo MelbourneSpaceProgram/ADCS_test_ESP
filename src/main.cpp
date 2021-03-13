@@ -42,6 +42,9 @@ THE SOFTWARE.
 
 
 #include "BluetoothSerial.h"
+#if !defined(CONFIG_BT_ENABLED) || !defined(CONFIG_BLUEDROID_ENABLED)
+#error Bluetooth is not enabled! Please run `make menuconfig` to and enable it
+#endif
 
 // class default I2C address is 0x68
 // specific I2C addresses may be passed as a parameter here
@@ -103,6 +106,7 @@ void setup() {
     // Serial.begin(115200);
 
     // initialize device
+    // Serial.println("here...");
     ESP_BT.println("Initializing I2C devices...");
     imu.initialize();
 
@@ -135,7 +139,7 @@ void setup() {
     x_rod.set_power_maximum(128);
     y_rod.set_power_maximum(128);
     
-
+    Serial.println("rods initialised...");
     old_t = micros();
 }
 
