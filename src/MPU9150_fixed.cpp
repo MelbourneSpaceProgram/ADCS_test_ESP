@@ -65,6 +65,40 @@ void MPU9150::initialize() {
     setFullScaleGyroRange(MPU9150_GYRO_FS_250);
     setFullScaleAccelRange(MPU9150_ACCEL_FS_2);
     setSleepEnabled(false); // thanks to Jack Elston for pointing this one out!
+    initMagnetometer();
+}
+
+/** Enable the magnetometer.
+ * Make sure the device is connected and responds as expected.
+ */
+void MPU9150::initMagnetometer() {
+    I2Cdev::writeByte(devAddr, MPU9150_RA_INT_PIN_CFG, 0x02); //set i2c bypass enable pin to true to access magnetometer
+    
+}
+
+bool MPU9150::testMagnetometer() {
+    // I2Cdev::writeByte(devAddr, MPU9150_RA_INT_PIN_CFG, 0x02); //set i2c bypass enable pin to true to access magnetometer
+    // delay(10);
+    uint8_t b;
+    if (!I2Cdev::readByte(AK8975_ADDRESS, AK8975_RA_WIA, &b)) return false;
+    return  b == AK8975_WHOAMI;
+}
+
+
+/** Retieves compass sensitivity values
+ * Corrections to raw H measurements should be done by
+ * H_new = H_old * [ (ASA - 128)*0.5/128 + 1 ]
+ * @param asax - x adjustment sensitivity
+ * @param asay - y adjustment sensitivity
+ * @param asaz - z adjustment sensitivity
+ * @return or'd status of I2C reads
+ */
+uint8_t MPU9150::getCompassSensitivity(uint8_t* asax, uint8_t* asay, uint8_t* asaz){
+    // I2Cdev::writeByte(devAddr, MPU9150_RA_INT_PIN_CFG, 0x02); //set i2c bypass enable pin to true to access magnetometer
+    // delay(10);
+    I2Cdev::readByte(AK8975_ADDRESS, AK8975_RA_SADJ_X, asax);
+    I2Cdev::readByte(AK8975_ADDRESS, AK8975_RA_SADJ_Y, asay);
+    return !I2Cdev::readByte(AK8975_ADDRESS, AK8975_RA_SADJ_Z, asaz);
 }
 
 /** Verify the I2C connection.
@@ -1707,20 +1741,36 @@ bool MPU9150::getIntDataReadyStatus() {
  */
 uint8_t MPU9150::getMag(int16_t* mx, int16_t* my, int16_t* mz) {
     //read magnetometer only
-    uint8_t ready, st2;
-    I2Cdev::writeByte(devAddr, MPU9150_RA_INT_PIN_CFG, 0x02); //set i2c bypass enable pin to true to access magnetometer
+    static int16_t m[3];
+    uint16_t res = getMag(m);
+    *mx = m[0];
+    *my = m[1];
+    *mz = m[2];
+    return res;
+}
+
+/** Get raw 3-axis magnetometer sensor readings.
+ * @param v pointer to contiguous block of 3 16-bit signed integers for magnetometer X-axis value
+ * @return Bit 0x08 signals H overflow, bit 0x04 signals data read error
+ * @return 1 if data is not ready
+ */
+uint8_t MPU9150::getMag(int16_t* v) {
+    //read magnetometer only
+    uint8_t status;
+    // I2Cdev::writeByte(devAddr, MPU9150_RA_INT_PIN_CFG, 0x02); //set i2c bypass enable pin to true to access magnetometer
+    // delay(10);
+    I2Cdev::writeByte(AK8975_ADDRESS, AK8975_RA_CNTL, 0x01); // Take the measurement
     delay(10);
-    I2Cdev::writeByte(MPU9150_RA_MAG_ADDRESS, MPU9150_RA_MAG_CNTL, 0x01); //enable the magnetometer
-    delay(10);
-    I2Cdev::readBytes(MPU9150_RA_MAG_ADDRESS, 0x02, 1, &ready); // check if data is ready
-    if (ready != 0x01)
+    I2Cdev::readByte(AK8975_ADDRESS, AK8975_RA_ST1, &status); // check if data is ready
+    if (status != 0x01){
         return 1;
-    I2Cdev::readBytes(MPU9150_RA_MAG_ADDRESS, MPU9150_RA_MAG_XOUT_L, 6, buffer);
-    *mx = (((int16_t)buffer[1]) << 8) | buffer[0];
-    *my = (((int16_t)buffer[3]) << 8) | buffer[2];
-    *mz = (((int16_t)buffer[5]) << 8) | buffer[4];
-    I2Cdev::readBytes(MPU9150_RA_MAG_ADDRESS, 0x09, 1, &st2); // check status 2 register
-    return st2; // returns status
+    }
+    I2Cdev::readBytes(AK8975_ADDRESS, AK8975_RA_XOUT_L, 6, buffer);
+    *v     = (((int16_t)buffer[1]) << 8) | buffer[0];
+    *(v+1) = (((int16_t)buffer[3]) << 8) | buffer[2];
+    *(v+2) = (((int16_t)buffer[5]) << 8) | buffer[4];
+    I2Cdev::readByte(AK8975_ADDRESS, AK8975_RA_ST2, &status); // check status 2 register
+    return status;
 }
 
 /** Get raw 9-axis motion sensor readings (accel/gyro/compass).
@@ -1747,9 +1797,9 @@ void MPU9150::getMotion9(int16_t* ax, int16_t* ay, int16_t* az, int16_t* gx, int
     //read mag
     I2Cdev::writeByte(devAddr, MPU9150_RA_INT_PIN_CFG, 0x02); //set i2c bypass enable pin to true to access magnetometer
     delay(10);
-    I2Cdev::writeByte(MPU9150_RA_MAG_ADDRESS, 0x0A, 0x01); //enable the magnetometer
+    I2Cdev::writeByte(AK8975_ADDRESS, 0x0A, 0x01); //enable the magnetometer
     delay(10);
-    I2Cdev::readBytes(MPU9150_RA_MAG_ADDRESS, MPU9150_RA_MAG_XOUT_L, 6, buffer);
+    I2Cdev::readBytes(AK8975_ADDRESS, AK8975_RA_XOUT_L, 6, buffer);
     *mx = (((int16_t)buffer[0]) << 8) | buffer[1];
     *my = (((int16_t)buffer[2]) << 8) | buffer[3];
     *mz = (((int16_t)buffer[4]) << 8) | buffer[5];

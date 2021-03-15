@@ -88,27 +88,37 @@ THE SOFTWARE.
     #endif
 #endif
 
-// Magnetometer Registers
+// AK8975 Magnetometer Registers
 // device address
-#define MPU9150_RA_MAG_ADDRESS		0x0C
+#define AK8975_ADDRESS		    0x0C
 
-#define MPU9150_RA_MAG_READY            0x02
-#define MPU9150_RA_MAG_CNTL             0x0A // control - sets mode.
-#define MPU9150_RA_MAG_STATUS           0x09
+// whoami: reads to this address should return 0x48
+#define AK8975_RA_WIA           0x00
+// INFO
+#define AK8975_RA_INFO          0x01
 
-// Output registers
-#define MPU9150_RA_MAG_XOUT_L		0x03
-#define MPU9150_RA_MAG_XOUT_H		0x04
-#define MPU9150_RA_MAG_YOUT_L		0x05
-#define MPU9150_RA_MAG_YOUT_H		0x06
-#define MPU9150_RA_MAG_ZOUT_L		0x07
-#define MPU9150_RA_MAG_ZOUT_H		0x08
+// Magnetometer reading registers
+#define AK8975_RA_XOUT_L		0x03
+#define AK8975_RA_XOUT_H		0x04
+#define AK8975_RA_YOUT_L		0x05
+#define AK8975_RA_YOUT_H		0x06
+#define AK8975_RA_ZOUT_L		0x07
+#define AK8975_RA_ZOUT_H		0x08
+
+// Status registers
+#define AK8975_RA_ST1         0x02
+#define AK8975_RA_ST2        0x09
+
+#define AK8975_RA_CNTL          0x0A
+#define AK8975_RA_ASTC          0x0C
 
 // read-only sensitivity adjustment registers (Fuse ROM)
+#define AK8975_RA_SADJ_X		0x10
+#define AK8975_RA_SADJ_Y		0x11
+#define AK8975_RA_SADJ_Z		0x12
 
-#define MPU9150_RA_MAG_SADJ_X		0x10
-#define MPU9150_RA_MAG_SADJ_Y		0x11
-#define MPU9150_RA_MAG_SADJ_Z		0x12
+// whoami
+#define AK8975_WHOAMI           0x48
 
 
 
@@ -478,6 +488,10 @@ class MPU9150 {
         void initialize();
         void initMagnetometer();
         bool testConnection();
+        bool testMagnetometer();
+
+        // Magnetometer sensitivity as stored on board in ROM
+        uint8_t getCompassSensitivity(uint8_t* asax, uint8_t* asay, uint8_t* asaz);
 
         // AUX_VDDIO register
         uint8_t getAuxVDDIOLevel();
@@ -650,6 +664,7 @@ class MPU9150 {
 
         // ACCEL_*OUT_* registers
         uint8_t getMag(int16_t* mx, int16_t* my, int16_t* mz);
+        uint8_t getMag(int16_t* v);
         void getMotion9(int16_t* ax, int16_t* ay, int16_t* az, int16_t* gx, int16_t* gy, int16_t* gz, int16_t* mx, int16_t* my, int16_t* mz);
         void getMotion6(int16_t* ax, int16_t* ay, int16_t* az, int16_t* gx, int16_t* gy, int16_t* gz);
         void getAcceleration(int16_t* x, int16_t* y, int16_t* z);
@@ -752,6 +767,7 @@ class MPU9150 {
         void setDeviceID(uint8_t id);
         
         // ======== UNDOCUMENTED/DMP REGISTERS/METHODS ========
+        // ABANDON HOPE ALL YE WHO ENTER HERE
         
         // XG_OFFS_TC register
         uint8_t getOTPBankValid();
@@ -851,6 +867,7 @@ class MPU9150 {
         void setDMPConfig2(uint8_t config);
 
         // special methods for MotionApps 2.0 implementation
+        // None of this works as far as I can tell...
         #ifdef MPU9150_INCLUDE_DMP_MOTIONAPPS20
             uint8_t *dmpPacketBuffer;
             uint16_t dmpPacketSize;
