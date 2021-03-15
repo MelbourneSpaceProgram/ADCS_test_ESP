@@ -37,116 +37,69 @@ THE SOFTWARE.
 // for both classes must be in the include path of your project
 #include "I2Cdev.h"
 #include "BdotController.h"
-// #include "helper_3dmath.h"
 #include "Torquer.h"
 
+bool blinkState = false;
+const static uint32_t MAGTASK_STACK_SIZE = 25000;
 
-#include "BluetoothSerial.h"
+// Super secret wifi credentials
+const char* ssid = "ACRUX-0";
+const char* password = "ultra_secure";
 
-
-BluetoothSerial ESP_BT; // 
-
+// // Set web server port number to 80
+// WiFiServer server(80);
+BDotController magwatcher;
 Torquer x_rod(27, 26, 25, 0);
 Torquer y_rod(35, 33, 32, 1);
 
-BDotController ctrl;
-
-
-
-#define BUFFER_LEN 10
-
-#define LED_PIN 2
-bool blinkState = false;
-
 
 void setup() {
+	uint8_t status = 0;
     // join I2C bus (I2Cdev library doesn't do this automatically)
     Wire.begin();
 
     // initialize serial communication
-    ESP_BT.begin("ESP32"); //Name of your Bluetooth Signal
-    // Serial.begin(115200);
-    
-    // Constant offsets are not relevant for dB/dt
-    //
-    // Serial.println("Calibrating magnetometer...");
-    // imu.calibrate();
-    // Serial.println( (imu.isCalibrated()) ? "Success" : "Failure");
-    // initialize the controller
-    ctrl.init();
+    Serial.begin(115200);
+
+
+    // Initialize the magnetometer viewer
+    magwatcher.init();
+
+	status = magwatcher.hardwareCheck();
+	if (status != 0){
+		if (status&0x01) Serial.println("IMU connection failure");
+		if (status&0x02) Serial.println("magnetometer connection failure");
+	}
 
 
     // configure LED pin for output
-    pinMode(LED_PIN, OUTPUT);
+    pinMode(LED_BUILTIN, OUTPUT);
 
-		// Call torquer initialisation routines (these set up the pins and
-		// configure PWM channels)
+	// Call torquer initialisation routines (these set up the pins and
+	// configure PWM channels)
     x_rod.init();
     y_rod.init();
 
-		// Sets maximum allowable PWM duty cycle
-		// TODO: Reconfigure this to be a percentage
-    x_rod.set_max_power(128);
-    y_rod.set_max_power(128);
-    
-
+	// 	// Sets maximum allowable PWM duty cycle
+    x_rod.set_max_power(0.5);
+    y_rod.set_max_power(0.5);
 }
 
-// Parametrises numerical low pass filter
-// Dimensionless - this only depends on the nth data point in history
-float lambda = 0.5;
-
 void loop() {
-    unsigned long t = micros();
-    // read raw accel/gyro/mag measurements from device
-    uint8_t status = imu.getMag(mx, my, mz);
-    // compute some averages
-    float avg_mx = averageB(mx);
-    float avg_my = averageB(my);
-    float avg_mz = averageB(mz);
+	magwatcher.poll_magnetometer();
 
-    float dmx_dt = (avg_mx - old_mx) / (t - old_t);
-    float dmy_dt = (avg_my - old_my) / (t - old_t);
-    float dmz_dt = (avg_mz - old_mz) / (t - old_t);
-    
-    if (ESP_BT.available() > 0){
-        lambda = ESP_BT.parseFloat();
-        ESP_BT.print("Set decay constant to ");
-        ESP_BT.println(lambda);
-    }
-    // one = 0.3 microTesla
+	vector3_f B;
+	char buffer[128];
 
+	magwatcher.get_avg_B(B);
+	B.str(buffer, 128, "%4.3f %4.3f %4.3f ");
+	Serial.println(buffer);
 
-		// Rescale the control signals so that the larger one is always plus/minus one
-    float biggest = max(abs(dmx_dt), abs(dmy_dt));
-    dmx_dt /= biggest;
-    dmy_dt /= biggest;
+	// x_rod.actuate(-dmx_dt);
+	// y_rod.actuate(-dmy_dt);
 
+	digitalWrite(LED_BUILTIN, blinkState);
+	blinkState=!blinkState;
+	delay(10);
 
-    x_rod.actuate(-dmx_dt);
-    y_rod.actuate(-dmy_dt);
-
-
-    ESP_BT.print(avg_mx); ESP_BT.print("\t");
-    ESP_BT.print(avg_my); ESP_BT.print("\t");
-    ESP_BT.print(avg_mz); ESP_BT.print("\t");
-
-    ESP_BT.print(dmx_dt); ESP_BT.print("\t");
-    ESP_BT.print(dmy_dt); ESP_BT.print("\t");
-    ESP_BT.print(dmz_dt); ESP_BT.print("\t");
-    ESP_BT.println(status);
-
-    // blink LED to indicate activity
-    blinkState = !blinkState;
-    digitalWrite(LED_PIN, blinkState);
-    delay(50);
-
-    if (++idx == BUFFER_LEN){
-        idx = 0;
-    }
-
-    old_mx = avg_mx;
-    old_my = avg_my;
-    old_mz = avg_mz;
-    old_t = t;
 }

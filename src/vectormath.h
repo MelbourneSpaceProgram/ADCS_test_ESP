@@ -1,23 +1,24 @@
+
 // 3D vector algebra implementation. T must be a (mathematical) field, e.g. int32_t
 template<typename T>
 struct Vector3 {
     T x, y, z;
 
-    Vector3& operator+=(const Vector3<T>& v2){
+    Vector3<T>& operator+=(const Vector3<T>& v2){
         this->x += v2.x;
         this->y += v2.y;
         this->z += v2.z;
         return *this;
     }
 
-    Vector3& operator-=(const Vector3<T>& v2){
+    Vector3<T>& operator-=(const Vector3<T>& v2){
         this->x -= v2.x;
         this->y -= v2.y;
         this->z -= v2.z;
         return *this;
     }
 
-    Vector3& operator*=(const Vector3<T>& v2){
+    Vector3<T>& operator*=(const Vector3<T>& v2){
         this->x *= v2.x;
         this->y *= v2.y;
         this->z *= v2.z;
@@ -26,29 +27,37 @@ struct Vector3 {
 
 
     // scalar multiplication
-    Vector3& operator*=(T a){
+    Vector3<T>& operator*=(T a){
         this->x *= a;
         this->y *= a;
         this->z *= a;
         return *this;
     }
 
-    Vector3& operator=(T value){
+    Vector3<T>& operator=(const T value){
         this->x = value;
         this->y = value;
         this->z = value;
+        return *this;
     }
 
-    static Vector3 ones(T f){
-        Vector3 v;
-        v = value;
+    static Vector3<T> ones(const T f){
+        Vector3<T> v;
+        v = f;
         return v;
     }
 
-    static const Vector3 ones(const T f){
-        Vector3 v;
-        v = value;
-        return v;
+    template<typename S>
+    Vector3<T>& from(const Vector3<S> v2){
+        this->x = (T) v2.x;
+        this->y = (T) v2.y;
+        this->y = (T) v2.y;
+        return *this;
+    }
+
+    // Reads the vector into a string
+    void str(char* s, uint8_t len, const char* fmt="%.3f %.3f %.3f"){
+        snprintf(s, len, fmt, this->x, this->y, this->z);
     }
 };
 
@@ -61,9 +70,9 @@ template<typename T>
 struct Quaternion {
     T a,x,y,z;
     Quaternion(){}
-    Quaternion(Vector3 axAngle){
+    // Quaternion(Vector3<T> axAngle){
 
-    }
+    // }
 
     Quaternion& operator+=(const Quaternion<T>& q){
         this->a += q.a;
@@ -104,7 +113,7 @@ struct Mat3D{
 // left-multiplicaiton
 template<typename T>
 Vector3<T> operator*(const Mat3D<T>& M, const Vector3<T>& v){
-    Vector3 retval;
+    Vector3<T> retval;
     retval.x = M.xx*v.x + M.xy*v.y + M.xz*v.z;
     retval.y = M.yx*v.x + M.yy*v.y + M.yz*v.z;
     retval.z = M.zx*v.x + M.zy*v.y + M.zz*v.z;
@@ -114,7 +123,7 @@ Vector3<T> operator*(const Mat3D<T>& M, const Vector3<T>& v){
 // right-multiplication (v is a row vector)
 template<typename T>
 Vector3<T> operator*(const Vector3<T>& v, const Mat3D<T>& M){
-    Vector3 retval;
+    Vector3<T> retval;
     retval.x = v.x*M.xx + v.y*M.yx + v.z*M.zx;
     retval.y = v.x*M.xy + v.y*M.yy + v.z*M.zy;
     retval.z = v.x*M.xz + v.y*M.yz + v.z*M.zz;

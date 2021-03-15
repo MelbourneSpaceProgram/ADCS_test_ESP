@@ -42,8 +42,12 @@ public:
         ledcWrite(pwm_channel, sig);
     }
 
-    void set_max_power(uint16_t pow){
-        max_power = pow;
+    void set_max_power(float p){
+        if(p<= 1 && p >0){
+            max_power = p*(pow(2,resolution)-1);
+        } else {
+            max_power = pow(2,resolution)-1;
+        }
     }
 
 private:
