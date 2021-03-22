@@ -1765,10 +1765,11 @@ uint8_t MPU9150::getMag(int16_t* v) {
     if (status != 0x01){
         return 1;
     }
-    I2Cdev::readBytes(AK8975_ADDRESS, AK8975_RA_XOUT_L, 6, buffer);
-    *v     = (((int16_t)buffer[1]) << 8) | buffer[0];
-    *(v+1) = (((int16_t)buffer[3]) << 8) | buffer[2];
-    *(v+2) = (((int16_t)buffer[5]) << 8) | buffer[4];
+    // I2Cdev::readBytes(AK8975_ADDRESS, AK8975_RA_XOUT_L, 6, buffer);
+    // *v     = (((int16_t)buffer[1]) << 8) | buffer[0];
+    // *(v+1) = (((int16_t)buffer[3]) << 8) | buffer[2];
+    // *(v+2) = (((int16_t)buffer[5]) << 8) | buffer[4];
+    I2Cdev::readWords(AK8975_ADDRESS, AK8975_RA_XOUT_L,3,(uint16_t*) v);
     I2Cdev::readByte(AK8975_ADDRESS, AK8975_RA_ST2, &status); // check status 2 register
     return status;
 }

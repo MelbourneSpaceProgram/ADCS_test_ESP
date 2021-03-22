@@ -30,9 +30,15 @@ public:
     }
     // Records an updated magnetometer reading, along with the time
     void poll_magnetometer();
-    // Retrieves a lowpass filtered balue of B
-    void get_avg_B(vector3_f& B);
+    // Retrieves a lowpass filtered balue of B, based on N records
+    void get_avg_B(vector3_f& B, uint16_t N);
+    // retrieves most recent reading, without filtering
     void get_raw_B(vector3_f& B);
+    // retrieves dB/dt in a finite differenced manner
+    void get_Bdot(vector3_f& B, uint16_t N);
+    void get_Bdot(vector3_f& B){
+        get_Bdot(B, BUFFER_LEN-1);
+    }
 private:
     // class default I2C address is 0x68
     // specific I2C addresses may be passed as a parameter here

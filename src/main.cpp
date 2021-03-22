@@ -1,11 +1,3 @@
-// I2C device class (I2Cdev) demonstration Arduino sketch for MPU9150
-// 1/4/2013 original by Jeff Rowberg <jeff@rowberg.net> at https://github.com/jrowberg/i2cdevlib
-//          modified by Aaron Weiss <aaron@sparkfun.com>
-//
-// Changelog:
-//     2011-10-07 - initial release
-//     2013-1-4 - added raw magnetometer output
-
 /* ============================================
 I2Cdev device library code is placed under the MIT license
 
@@ -32,25 +24,24 @@ THE SOFTWARE.
 // Arduino Wire library is required if I2Cdev I2CDEV_ARDUINO_WIRE implementation
 // is used in I2Cdev.h
 #include "Wire.h"
-
-// I2Cdev and MPU9150 must be installed as libraries, or else the .cpp/.h files
-// for both classes must be in the include path of your project
 #include "I2Cdev.h"
 #include "BdotController.h"
 #include "Torquer.h"
+#include "telemetry.hpp"
+
+#include <Arduino.h>
+
 
 bool blinkState = false;
-const static uint32_t MAGTASK_STACK_SIZE = 25000;
+// const static uint32_t MAGTASK_STACK_SIZE = 25000;
 
-// Super secret wifi credentials
-const char* ssid = "ACRUX-0";
-const char* password = "ultra_secure";
-
-// // Set web server port number to 80
-// WiFiServer server(80);
 BDotController magwatcher;
 Torquer x_rod(27, 26, 25, 0);
 Torquer y_rod(35, 33, 32, 1);
+
+// Container for readings, to be sent as 
+const int capacity=JSON_OBJECT_SIZE(3);
+StaticJsonDocument<capacity> Hdot;
 
 
 void setup() {
@@ -60,6 +51,9 @@ void setup() {
 
     // initialize serial communication
     Serial.begin(115200);
+
+	// For testing:
+	telemetry::init();
 
 
     // Initialize the magnetometer viewer
@@ -85,21 +79,43 @@ void setup() {
     y_rod.set_max_power(0.5);
 }
 
+const uint16_t B_BUFFER = 100;
+vector3_f B_storage[B_BUFFER];
+char sendbuf[B_BUFFER*100];
+
+/** Constructs a string holding the JSON-ified B data
+ * @param s a character buffer of length at least n
+ * @param n length of the buffer
+ */
+void B_as_json(char s[], uint32_t n){
+
+}
+
 void loop() {
+	static vector3_f B;
+
 	magwatcher.poll_magnetometer();
 
-	vector3_f B;
 	char buffer[128];
 
-	magwatcher.get_avg_B(B);
+	magwatcher.get_Bdot(B);
 	B.str(buffer, 128, "%4.3f %4.3f %4.3f ");
 	Serial.println(buffer);
 
-	// x_rod.actuate(-dmx_dt);
-	// y_rod.actuate(-dmy_dt);
+	// Normalise so that dx/dt and dy/dt are at most 1
+	float biggest = max(abs(B.x), abs(B.y));
+	B /= biggest;
+
+	x_rod.actuate(B.x);
+	y_rod.actuate(B.x);
+
+	B_as_json(sendbuf, B_BUFFER*10);
+	telemetry::events.send(,"gyro_readings",millis());
+    
 
 	digitalWrite(LED_BUILTIN, blinkState);
 	blinkState=!blinkState;
 	delay(10);
+	B_old = B;
 
 }

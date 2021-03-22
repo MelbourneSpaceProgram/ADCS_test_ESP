@@ -25,7 +25,6 @@ struct Vector3 {
         return *this;
     }
 
-
     // scalar multiplication
     Vector3<T>& operator*=(T a){
         this->x *= a;
@@ -34,10 +33,29 @@ struct Vector3 {
         return *this;
     }
 
+    // scalar multiplication
+    Vector3<T>& operator/=(T a){
+        this->x /= a;
+        this->y /= a;
+        this->z /= a;
+        return *this;
+    }
+
     Vector3<T>& operator=(const T value){
         this->x = value;
         this->y = value;
         this->z = value;
+        return *this;
+    }
+
+    /** Normalises the vector it is applied to
+     * @return a reference to the current vector, which has been normalised with respect to the standard Euclidean norm
+     * */
+    Vector3<T>& normalise(){
+        T value = sqrt(x*x+y*y+z*z);
+        this->x /= value;
+        this->y /= value;
+        this->z /= value;
         return *this;
     }
 
@@ -108,24 +126,25 @@ struct Mat3D{
     void from_Euler_TB(float roll, float pitch, float yaw){
         
     }
+
+    Vector3<T> operator*(const Vector3<T>& v){
+        Vector3<T> retval;
+        retval.x = xx*v.x + xy*v.y + xz*v.z;
+        retval.y = yx*v.x + yy*v.y + yz*v.z;
+        retval.z = zx*v.x + zy*v.y + zz*v.z;
+        return retval;
+        
+    }
+
+    // // right-multiplication (v is a row vector)
+    // Vector3<T> operator*(const Vector3<T>& v, const Mat3D<T>& M){
+    //     Vector3<T> retval;
+    //     retval.x = v.x*M.xx + v.y*M.yx + v.z*M.zx;
+    //     retval.y = v.x*M.xy + v.y*M.yy + v.z*M.zy;
+    //     retval.z = v.x*M.xz + v.y*M.yz + v.z*M.zz;
+    //     return retval;
+    // }
 };
 
-// left-multiplicaiton
-template<typename T>
-Vector3<T> operator*(const Mat3D<T>& M, const Vector3<T>& v){
-    Vector3<T> retval;
-    retval.x = M.xx*v.x + M.xy*v.y + M.xz*v.z;
-    retval.y = M.yx*v.x + M.yy*v.y + M.yz*v.z;
-    retval.z = M.zx*v.x + M.zy*v.y + M.zz*v.z;
-    return retval;
-}
 
-// right-multiplication (v is a row vector)
-template<typename T>
-Vector3<T> operator*(const Vector3<T>& v, const Mat3D<T>& M){
-    Vector3<T> retval;
-    retval.x = v.x*M.xx + v.y*M.yx + v.z*M.zx;
-    retval.y = v.x*M.xy + v.y*M.yy + v.z*M.zy;
-    retval.z = v.x*M.xz + v.y*M.yz + v.z*M.zz;
-    return retval;
-}
+
