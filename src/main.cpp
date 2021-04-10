@@ -39,9 +39,9 @@ BDotController magwatcher;
 Torquer x_rod(27, 26, 25, 0);
 Torquer y_rod(35, 33, 32, 1);
 
-// Container for readings, to be sent as 
-const int capacity=JSON_OBJECT_SIZE(3);
-StaticJsonDocument<capacity> Hdot;
+// // Container for readings, to be sent as 
+// const int capacity=JSON_OBJECT_SIZE(3);
+// StaticJsonDocument<capacity> Hdot;
 
 
 void setup() {
@@ -79,28 +79,32 @@ void setup() {
     y_rod.set_max_power(0.5);
 }
 
-const uint16_t B_BUFFER = 100;
-vector3_f B_storage[B_BUFFER];
-char sendbuf[B_BUFFER*100];
+// const uint16_t B_BUFFER = 100;
+// vector3_f B_storage[B_BUFFER];
+// char sendbuf[B_BUFFER*100];
 
-/** Constructs a string holding the JSON-ified B data
- * @param s a character buffer of length at least n
- * @param n length of the buffer
- */
-void B_as_json(char s[], uint32_t n){
+// /** Constructs a string holding the JSON-ified B data
+//  * @param s a character buffer of length at least n
+//  * @param n length of the buffer
+//  */
+// void B_as_json(char s[], uint32_t n){
 
-}
+// }
+
+const uint BUFLEN=128;
+
+char B_buffer[BUFLEN];
+char big_buffer[BUFLEN*2];
 
 void loop() {
 	static vector3_f B;
 
 	magwatcher.poll_magnetometer();
 
-	char buffer[128];
 
 	magwatcher.get_Bdot(B);
-	B.str(buffer, 128, "%4.3f %4.3f %4.3f ");
-	Serial.println(buffer);
+	B.str(B_buffer, BUFLEN, "%4.3f %4.3f %4.3f ");
+	Serial.println(B_buffer);
 
 	// Normalise so that dx/dt and dy/dt are at most 1
 	float biggest = max(abs(B.x), abs(B.y));
@@ -109,13 +113,16 @@ void loop() {
 	x_rod.actuate(B.x);
 	y_rod.actuate(B.x);
 
-	B_as_json(sendbuf, B_BUFFER*10);
-	telemetry::events.send(,"gyro_readings",millis());
+
+	magwatcher.get_raw_B(B);
+	B.str(B_buffer, BUFLEN, "%2.2f\t%2.2f\t%2.2f");
+	snprintf(big_buffer, BUFLEN,"%5d\t",millis());
+	strncat(big_buffer, B_buffer, BUFLEN);
+	// B_as_json(sendbuf, B_BUFFER*10);
+	telemetry::events.send(big_buffer,"mag_readings",millis());
     
 
 	digitalWrite(LED_BUILTIN, blinkState);
 	blinkState=!blinkState;
-	delay(10);
-	B_old = B;
-
+	delay(100);
 }

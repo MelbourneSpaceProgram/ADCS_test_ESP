@@ -10,25 +10,34 @@ namespace telemetry {
 AsyncWebServer server(80);
 // Create an Event Source on /events
 AsyncEventSource events("/events");
-// Create an Event Source on /events
-AsyncEventSource events("/events");
 
 // Super secret wifi credentials
-const char* ssid = "BECRUX-2";
-const char* password = "ultra_secure";
+const char* self_ssid = "BECRUX-2";
+const char* self_password = "ultra_secure";
+
+const char* ssid="Brunel";
+const char* password="The Great Eastern";
+
+
 
 // Initialize WiFi
 void init() {
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
+  // WiFi.softAP(self_ssid, self_password);
   Serial.println("");
   Serial.print("Connecting to WiFi...");
   while (WiFi.status() != WL_CONNECTED) {
     Serial.print(".");
     delay(1000);
   }
-  Serial.println("");
+
+  
+  Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
+  // IPAddress IP = WiFi.softAPIP();
+  // Serial.print("AP IP address: ");
+  // Serial.println(IP);
 
   // Handle Web Server Events
   events.onConnect([](AsyncEventSourceClient *client){
