@@ -4,7 +4,6 @@
 #include "MPU9150_fixed.h"
 #include "vectormath.h"
 #include "Ticker.h"
-#include "MPU9150_fixed.h"
 #include "esp_timer.h"
 #include <algorithm>
 

@@ -14,7 +14,6 @@ AsyncEventSource events("/events");
 // Super secret wifi credentials
 const char* self_ssid = "BECRUX-2";
 const char* self_password = "ultra_secure";
-
 const char* ssid="Brunel";
 const char* password="The Great Eastern";
 
